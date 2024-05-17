@@ -1,0 +1,67 @@
+---
+#
+# CI/CD template for Helm deployment
+#
+
+parameters:
+  - name: moduleVersion
+    type: string
+  - name: moduleName
+    type: string
+  - name: moduleEnvironment
+    type: string
+  - name: overrideValues
+    type: string
+    default: '""'
+  - name: moduleTenant
+    type: string
+  - name: moduleRegion
+    type: string
+    default: 'ec1'
+
+
+steps:
+  - task: HelmInstaller@1
+    displayName: Helm client - Install latest version
+    inputs:
+      helmVersionToInstall: latest
+
+  - bash: |
+      AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text --profile=shared-ec1)
+
+      aws ecr get-login-password --region ${AWS_REGION} --profile=shared-ec1 | \
+      helm registry login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+      
+      echo "##vso[task.setvariable variable=aws_account_id;isOutput=true]${AWS_ACCOUNT_ID}"
+
+      aws eks update-kubeconfig --name rw-${{ parameters.moduleEnvironment }}-${{ parameters.moduleRegion }}-infra-eks-default-cluster --region eu-central-1 --profile=${{ parameters.moduleEnvironment }}-${{ parameters.moduleRegion }}
+    displayName: Login to ECR for pull
+    name: login_ecr_pull
+
+  - bash: |
+      helm pull --untar \
+      oci://$(login_ecr_pull.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com/helm/${{ parameters.moduleName }} \
+      --version ${{ parameters.moduleVersion }}
+
+      if [ ${{ parameters.moduleTenant }} == "" ]; then
+        VALUES_FILE=./${{ parameters.moduleName }}/values.yaml
+      else
+        VALUES_FILE=./${{ parameters.moduleName }}/values-eks-${{ parameters.moduleEnvironment }}-${{ parameters.moduleTenant }}.yaml
+      fi
+
+      if [ ${{ parameters.moduleTenant }} == "dev" ]; then
+        NAMESPACE="dev"
+      elif [ ${{ parameters.moduleTenant }} == "staging" ]; then
+        NAMESPACE="staging"
+      else
+        NAMESPACE="tenant-${{ parameters.moduleTenant }}"
+      fi
+
+      helm upgrade \
+      --namespace ${NAMESPACE} \
+      --install --create-namespace \
+      --values ${VALUES_FILE} \
+      --set ${{ parameters.overrideValues }} \
+      --wait ${{ parameters.moduleName }}-${{ parameters.moduleTenant }} \
+      ./${{ parameters.moduleName }}
+    displayName: Helm upgrade

@@ -1,0 +1,19 @@
+---
+replicaCount: 2
+
+image:
+  tag: <buildNum>
+
+ingress:
+  ingressClassName: nginx-demo
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-demo
+  hosts:
+    - host: demo.riskwolf.com
+      paths: ["/"]
+  tls:
+    - secretName: demo-riskwolf-com-tls
+      hosts:
+        - demo.riskwolf.com
+
+configFile: config-demo.js

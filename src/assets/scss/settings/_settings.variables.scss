@@ -1,0 +1,13 @@
+$yellow: #FFE034;
+
+$color-border: #DFE0EB;
+$secondary: $yellow;
+
+// Datepicker overrides
+$datepicker__selected-color: $secondary;
+$datepicker__border-color: $color-border;
+$datepicker__background-color: $secondary;
+
+// These values should match the ones set by MaterialUI.
+$radius: 4px;
+$input-border-color: rgba(0, 0, 0, 0.54);

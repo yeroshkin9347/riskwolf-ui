@@ -1,0 +1,175 @@
+---
+#
+# CI/CD pipeline for riskwolf-ui
+#
+
+name: $(Date:yyMMdd)$(Rev:.r)  # Sets the BuildNumber
+
+trigger:
+  branches:
+    include:
+      - master
+
+pool:
+  name: "self-hosted"
+
+variables:
+  - group: devEnvInfra
+  - group: devEnvSecrets
+  - name: moduleName
+    value: riskwolf-ui
+  - name: modulePath
+    value: .
+
+parameters:
+  - name: deployToDEV
+    displayName: "Deploy new module version to DEV environment after build?"
+    type: boolean
+    default: true
+
+stages:
+  - stage: 'Build_Deploy_EKS'
+    jobs:
+      - job: Build_Deploy_EKS
+        steps:
+          - checkout: self
+            persistCredentials: true
+
+          - bash: |
+              apt-get update
+
+              # install less
+              apt-get -y install less
+
+              # install kubectl
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+              install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+            name: setup_agent
+            displayName: Install tools & Connect to EKS
+          
+          - bash: |
+              build_commit=$(build.SourceVersion)
+              build_version=$(grep '^## ' CHANGELOG.md | sort -t "." -k1,1n -k2,2n -k3,3n | tail -n 1 | awk '{print $2}')-$(build.buildNumber).c-${build_commit:0:8}
+              echo "##vso[task.setvariable variable=build_version;isOutput=true]$build_version"
+              echo $build_version
+            name: setver
+            displayName: Determine new version
+            workingDirectory: '$(modulePath)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update application version number
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^appVersion: \".*\"$/appVersion: \"$(setver.build_version)\"/" Chart.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+        
+          - task: Bash@3
+            displayName: Helm chart - Update helm chart version number
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^version: .*$/version: $(setver.build_version)/" Chart.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+        
+          - task: Bash@3
+            displayName: Helm chart - Pack values-ENV.yaml with helm chart
+            inputs:
+              targetType: 'inline'
+              script: 'cp -r helm-config/* helm-charts/$(moduleName)/'
+              workingDirectory: '$(modulePath)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update image.tag number in values.yaml
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^\s*tag:.*$/  tag: $(setver.build_version)/" helm-charts/$(moduleName)/values*.yaml'
+              workingDirectory: '$(modulePath)'
+
+          - bash: |
+              # Start buildkitd
+              # rootlesskit buildkitd --oci-worker-no-process-sandbox --addr $BUILDKIT_HOST &
+              buildkitd --addr $BUILDKIT_HOST &
+              # Wait for buildkitd to start
+              while ! buildctl debug workers; do sleep 1; done
+            displayName: Run BuildKit
+        
+          - bash: |
+              AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text --profile=shared-ec1)
+              echo "##vso[task.setvariable variable=aws_account_id;isOutput=true]${AWS_ACCOUNT_ID}"
+            displayName: Get AWS Account ID
+            name: metadata
+        
+          - bash: |
+              # Add Docker's official GPG key:
+              apt-get install ca-certificates curl gnupg
+              install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              chmod a+r /etc/apt/keyrings/docker.gpg
+              
+              # Add the repository to Apt sources:
+              echo \
+                "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+                "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+                sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              apt-get update
+        
+              apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        
+              aws ecr get-login-password --region ${AWS_REGION} --profile=shared-ec1 | \
+              docker login --username AWS --password-stdin $(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com
+        
+              buildctl build \
+                --frontend dockerfile.v0 \
+                --local context=. \
+                --local dockerfile=. \
+                --opt platform=linux/amd64 \
+                --output type=image,\"name=$(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com/$(moduleName):$(setver.build_version),$(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com/$(moduleName):latest\",push=true
+            displayName: Build & Push
+            workingDirectory: $(Build.SourcesDirectory)/$(modulePath)/
+        
+          - task: HelmInstaller@1
+            displayName: Helm client - Install latest version
+            inputs:
+              helmVersionToInstall: latest
+        
+          - task: Bash@3
+            displayName: Helm - Lint chart for possible issues
+            inputs:
+              targetType: 'inline'
+              script: 'helm lint --values values.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+        
+          - task: Bash@3
+            displayName: Helm - Prepare chart archive for upload
+            inputs:
+              targetType: 'inline'
+              script: 'helm package .'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+        
+          - bash: |
+              aws ecr get-login-password --region ${AWS_REGION} --profile=shared-ec1 | \
+              helm registry login --username AWS --password-stdin $(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com
+            displayName: Login to ECR for push
+            name: login_ecr_push
+        
+          - task: Bash@3
+            displayName: Helm - Push chart to ECR [$(setver.build_version)]
+            inputs:
+              targetType: 'inline'
+              script: 'helm push $(moduleName)-*.tgz oci://$(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com/helm/'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+
+          - bash: |
+              aws eks update-kubeconfig --name rw-dev-ec1-infra-eks-default-cluster --region ${AWS_REGION} --profile=dev-ec1
+
+              helm pull --untar \
+              oci://$(metadata.aws_account_id).dkr.ecr.${AWS_REGION}.amazonaws.com/helm/$(moduleName) \
+              --version $(setver.build_version)
+        
+              helm upgrade \
+              --namespace dev \
+              --install --create-namespace \
+              --values ./$(moduleName)/values-eks-dev-dev.yaml \
+              --wait $(moduleName)-dev \
+              ./$(moduleName)
+            displayName: Helm upgrade
+            condition: eq('${{ parameters.deployToDEV }}', 'true')

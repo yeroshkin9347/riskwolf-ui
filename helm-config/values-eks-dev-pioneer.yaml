@@ -1,0 +1,22 @@
+---
+replicaCount: 1
+
+image:
+  repository: 079754108934.dkr.ecr.eu-central-1.amazonaws.com/riskwolf-ui
+  tag: <buildNum>
+  useImagePullSecrets: false
+
+ingress:
+  ingressClassName: nginx-internal
+  annotations:
+    cert-manager.io/cluster-issuer: shared
+    external-dns.alpha.kubernetes.io/class: shared
+  hosts:
+    - host: pioneer.riskwolf.com
+      paths: ["/"]
+  tls:
+    - secretName: pioneer.riskwolf.com
+      hosts:
+        - pioneer.riskwolf.com
+
+configFile: config-pioneer.js

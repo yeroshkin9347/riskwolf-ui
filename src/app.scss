@@ -1,0 +1,44 @@
+// Perhaps these classes should be removed.
+.app {
+  height: 100%;
+}
+
+.main {
+  display: flex;
+  height: 100%;
+}
+
+.main--primary {
+  padding-top: 5rem;
+}
+// Perhaps these classes should be removed. ./end
+
+// Variables
+@import 'assets/scss/settings/settings.variables';
+
+// Vendor
+@import 'react-datepicker/src/stylesheets/datepicker';
+
+// Geoapify
+@import 'assets/scss/components/components.geoapify';
+
+// Components
+@import 'assets/scss/components/components.datepicker';
+
+.map-container {
+  width: calc(100vw - 250px);
+  height: 100%;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+span[class^="PrivateValueLabel-circle"] {
+  border-radius: 4px;
+}
+
+@media only screen and (max-width: 959.95px) {
+  .map-container {
+    width: 100%;
+  }
+}

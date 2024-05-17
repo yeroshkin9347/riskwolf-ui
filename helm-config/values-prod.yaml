@@ -1,0 +1,19 @@
+---
+replicaCount: 2
+
+image:
+  tag: <buildNum>
+
+ingress:
+  ingressClassName: nginx-prod
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: app.riskwolf.com
+      paths: ["/"]
+  tls:
+    - secretName: prod-riskwolf-com-tls
+      hosts:
+        - app.riskwolf.com
+
+configFile: config-prod.js

@@ -1,0 +1,13 @@
+---
+image:
+  tag: <buildNum>
+
+ingress:
+  ingressClassName: nginx-dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dev
+  tls:
+    - secretName: dev-riskwolf-com-tls
+      hosts:
+        - dev.riskwolf.com
+

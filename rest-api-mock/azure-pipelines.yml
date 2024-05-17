@@ -1,0 +1,157 @@
+---
+# Node.js with Vue
+# Build a Node.js project that uses Vue.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+name: $(Date:yyMMdd)$(Rev:.r)  # Sets the BuildNumber
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - rest-api-mock
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: devEnvInfra
+  - group: devEnvSecrets
+  - name: moduleName
+    value: rest-api-mock
+  - name: modulePath
+    value: $(moduleName)
+
+parameters:
+  - name: deployToDEV
+    type: string
+    default: "true"
+
+
+stages:
+  - stage: Release_Publish_DeployDEV
+    jobs:
+      - job: Release_Publish_DeployDEV
+        steps:
+          - checkout: self
+            persistCredentials: true
+
+          - bash: |
+              build_commit=$(build.SourceVersion)
+              build_version=0.0.1-$(build.buildNumber).c-${build_commit:0:8}
+              echo "##vso[task.setvariable variable=build_version;isOutput=true]$build_version"
+              echo $build_version
+            name: setver
+            displayName: Determine new version
+            workingDirectory: '$(modulePath)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update application version number
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^appVersion: \".*\"$/appVersion: \"$(setver.build_version)\"/" Chart.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update helm chart version number
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^version: .*$/version: $(setver.build_version)/" Chart.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+
+          - task: Bash@3
+            displayName: Helm chart - Pack values-ENV.yaml with helm chart
+            inputs:
+              targetType: 'inline'
+              script: 'cp -r helm-config helm-charts/$(moduleName)/helm-config'
+              workingDirectory: '$(modulePath)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update image.tag number in values.yaml
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^\s*tag:.*$/  tag: $(setver.build_version)/" values.yaml'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+
+          - task: Bash@3
+            displayName: Helm chart - Update image.tag number in values-ENV.yaml
+            inputs:
+              targetType: 'inline'
+              script: 'sed -i "s/^\s*tag:.*$/  tag: $(setver.build_version)/" helm-charts/$(moduleName)/helm-config/values*.yaml'
+              workingDirectory: '$(modulePath)'
+
+          - task: Docker@2
+            displayName: Build & Push an image
+            inputs:
+              command: buildAndPush
+              Dockerfile: $(modulePath)/Dockerfile
+              containerRegistry: RiskwolfContainerRegistry_sc
+              repository: $(moduleName)
+              buildContext: $(modulePath)
+              tags: |
+                $(setver.build_version)
+                latest
+
+          - task: HelmInstaller@1
+            displayName: Helm client - Install latest version
+            inputs:
+              helmVersionToInstall: latest
+
+          - task: Bash@3
+            displayName: Helm - Login to ACR
+            inputs:
+              targetType: 'inline'
+              script: 'helm registry login $(azureContainerRegistry) --username $(AcrUsername) --password $(AcrPassword)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: Bash@3
+            displayName: Helm - Lint chart for possible issues
+            inputs:
+              targetType: 'inline'
+              script: 'helm lint'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+
+          - task: Bash@3
+            displayName: Helm - Prepare chart archive for upload
+            inputs:
+              targetType: 'inline'
+              script: 'helm package .'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: Bash@3
+            displayName: Helm - Push chart to ACR [$(setver.build_version)]
+            inputs:
+              targetType: 'inline'
+              script: 'helm push $(moduleName)-*.tgz oci://$(azureContainerRegistry)/helm'
+              workingDirectory: '$(modulePath)/helm-charts/$(moduleName)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: Bash@3
+            displayName: Helm - Pull chart from ACR
+            inputs:
+              targetType: 'inline'
+              script: 'helm pull --untar --untardir $(Pipeline.Workspace)/helm-chart --version $(setver.build_version) oci://$(azureContainerRegistry)/helm/$(moduleName)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: HelmDeploy@0
+            displayName: Helm upgrade
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(azureKubernetesCluster)
+              namespace: dev
+              command: upgrade
+              chartType: FilePath
+              chartPath: '$(Pipeline.Workspace)/helm-chart/$(moduleName)'
+              releaseName: $(moduleName)
+              valueFile: '$(Pipeline.Workspace)/helm-chart/$(moduleName)/helm-config/values-dev.yaml'
+            condition: eq('${{ parameters.deployToDEV }}', 'true')

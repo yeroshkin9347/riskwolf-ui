@@ -1,0 +1,34 @@
+---
+# Default values for rest-api-mock.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  # overwrite repository and tag in release pipeline
+  repository: riskwolfcontainerregistry.azurecr.io/rest-api-mock
+  tag: <buildNum>
+  useImagePullSecrets: true
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 8080
+
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: dev.riskwolf.com
+      paths: ["/mock(/|$)(.*)"]
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,67 @@
+---
+# Node.js with Vue
+# Build a Node.js project that uses Vue.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+name: $(Date:yyMMdd)$(Rev:.r)  # Sets the BuildNumber
+
+trigger:
+  none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: demoEnvInfra
+  - group: demoEnvSecrets
+  - name: moduleName
+    value: riskwolf-ui
+  - name: modulePath
+    value: .
+
+parameters:
+  - name: moduleVersion
+    type: string
+    default: "USER_DEFINED"
+
+
+stages:
+  - stage: DeployDEMO
+    jobs:
+      - job: DeployDEMO
+        steps:
+          - task: HelmInstaller@1
+            displayName: Helm client - Install latest version
+            inputs:
+              helmVersionToInstall: latest
+
+          - task: Bash@3
+            displayName: Helm - Login to ACR
+            inputs:
+              targetType: 'inline'
+              script: 'helm registry login $(azureContainerRegistry) --username $(AcrUsername) --password $(AcrPassword)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: Bash@3
+            displayName: Helm - Pull chart from ACR
+            inputs:
+              targetType: 'inline'
+              script: 'helm pull --untar --untardir $(Pipeline.Workspace)/helm-chart --version ${{ parameters.moduleVersion }} oci://$(azureContainerRegistry)/helm/$(moduleName)'
+            env:
+              HELM_EXPERIMENTAL_OCI: 1
+
+          - task: HelmDeploy@0
+            displayName: Helm upgrade
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(azureKubernetesCluster)
+              namespace: demo
+              command: upgrade
+              chartType: FilePath
+              chartPath: '$(Pipeline.Workspace)/helm-chart/$(moduleName)'
+              releaseName: $(moduleName)
+              valueFile: '$(Pipeline.Workspace)/helm-chart/$(moduleName)/helm-config/values-demo.yaml'

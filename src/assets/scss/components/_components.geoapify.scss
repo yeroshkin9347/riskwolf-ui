@@ -1,0 +1,29 @@
+// Custom styles for Geoapify library.
+
+.geocoder-container {
+  display: flex;
+}
+
+.geoapify-autocomplete-input {
+  padding: 18.5px 14px;
+  padding-right: 30px;
+  height: 3.5em;
+  border-radius: $radius;
+  border-color: $input-border-color;
+  flex-grow: 1;
+  width: auto;
+  font-size: 1em;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: #a4a4a7;
+  }
+
+  &:focus {
+    border-color: #1a1a21;
+    border-width: 2px;
+    padding: 16.5px 12px;
+    padding-right: 28px;
+  }
+}

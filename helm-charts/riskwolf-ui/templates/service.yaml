@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "riskwolf-ui.fullname" . }}
+  labels:
+    app: {{ template "riskwolf-ui.fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  ports:
+    - port: {{ .Values.service.externalPort }}
+      protocol: TCP
+      targetPort: {{ .Values.service.internalPort }}
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "riskwolf-ui.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: "{{ .Values.service.type }}"

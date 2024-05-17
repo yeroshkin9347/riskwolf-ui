@@ -1,0 +1,27 @@
+server {
+  listen       80;
+  server_name  localhost;
+
+  # Block requests to env specific configuration files e.g. config-demo.js
+  location ~ \/config\-.*\.js {
+    return 404;
+  }
+
+  # Route config.js requests to correct configuration file
+  location /config.js {
+    root   /usr/share/nginx/html;
+    set $config_file "${CONFIG_FILE}";
+    try_files /$config_file = 500;
+  }
+
+  location / {
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+    try_files $uri /index.html;
+  }
+
+  error_page   500 502 503 504  /50x.html;
+    root   /usr/share/nginx/html;
+    location = /50x.html {
+  }
+}

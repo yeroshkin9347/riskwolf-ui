@@ -1,0 +1,23 @@
+.react-datepicker {
+  width: 100%;
+
+  &:hover {
+    border-color: #757575;
+  }
+
+  &__header {
+    background-color: transparent;
+  }
+
+  &__day--keyboard-selected {
+    color: inherit !important;
+  }
+
+  &__day--in-selecting-range {
+    color: inherit !important;
+  }
+
+  &__month-container {
+    width: 100%;
+  }
+}

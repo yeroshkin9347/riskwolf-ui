@@ -1,0 +1,15 @@
+---
+image:
+  repository: 079754108934.dkr.ecr.eu-central-1.amazonaws.com/rest-api-mock
+  tag: <buildNum>
+  useImagePullSecrets: false
+
+ingress:
+  ingressClassName: nginx-internal
+  annotations:
+    cert-manager.io/cluster-issuer: shared
+    external-dns.alpha.kubernetes.io/class: shared
+  tls:
+    - secretName: dev.riskwolf.com
+      hosts:
+        - dev.riskwolf.com

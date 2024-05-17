@@ -1,0 +1,147 @@
+[
+    {
+        "Name": "WheatINSURE",
+        "Icon": "local_florist",
+        "Description": "Parametric insurance for wheat crops in Australia against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Wheat",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "hectares",
+        "DefaultSIperUnit" : 1000
+    },
+    {
+        "Name": "BarleyINSURE",
+        "Icon": "grain",
+        "Description": "Parametric insurance for barley crops in Australia against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Barley",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "hectares",
+        "DefaultSIperUnit" : 1000
+    },
+    {
+        "Name": "CanolaINSURE",
+        "Icon": "ac_unit",
+        "Description": "Parametric insurance for canola crops in Australia against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Canola",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "hectares",
+        "DefaultSIperUnit" : 1000
+    },
+    {
+        "Name": "CottonINSURE",
+        "Icon": "local_laundry_service",
+        "Description": "Parametric insurance for cotton crops in Australia against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Cotton",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "hectares",
+        "DefaultSIperUnit" : 1000
+    },
+    {
+        "Name": "SorghumINSURE",
+        "Icon": "grain",
+        "Description": "Parametric insurance for sorghum crops in Australia against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Sorghum",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "hectares",
+        "DefaultSIperUnit" : 1000
+    },
+    {
+        "Name": "CloudINSURE",
+        "Icon": "cloud",
+        "Description": "Parametric insurance for cloud downtimes.",
+        "SelectionType": "other",
+        "InsuredValue": "Cloud",
+        "Country": "Australia",
+        "Currency": "AUD",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "users",
+        "DefaultSIperUnit" : 25000
+    },
+    {
+        "Name": "AppleINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for apples in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Apples",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    },
+    {
+        "Name": "RiceINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for rice crops in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Rice",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    },
+    {
+        "Name": "WheatINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for wheat crops in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Wheat",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    },
+    {
+        "Name": "MaizeINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for maize crops in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Maize",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    },
+    {
+        "Name": "CottonINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for cotton crops in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Cotton",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    },
+    {
+        "Name": "SugarcaneINSURE",
+        "Icon": "agriculture",
+        "Description": "Parametric insurance for sugarcane crops in India against adverse weather events.",
+        "SelectionType": "location-based",
+        "InsuredValue": "Sugarcane",
+        "Country": "India",
+        "Currency": "INR",
+        "SumInsuredBasis": "REVENUE_LOSS",
+        "InsuredUnit" : "acres",
+        "DefaultSIperUnit" : 100
+    }
+]
+

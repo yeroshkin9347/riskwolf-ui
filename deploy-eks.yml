@@ -1,0 +1,45 @@
+---
+#
+# Pipeline for Deployment to EKS cluster
+#
+
+name: Deploy-${{ parameters.moduleName }}-${{ parameters.moduleEnvironment }}-${{ parameters.moduleTenant }}-${{ parameters.moduleVersion }}
+
+trigger:
+  none
+
+pool:
+  name: "self-hosted"
+
+parameters:
+  - name: moduleName
+    type: string
+    default: "riskwolf-ui"
+  - name: moduleVersion
+    type: string
+    default: "USER_DEFINED"
+  - name: moduleOverrides
+    type: string
+    default: '""'
+  - name: moduleEnvironment
+    type: string
+    default: "dev"
+    values:
+      - dev
+  - name: moduleTenant
+    type: string
+    default: "USER_DEFINED"
+
+
+stages:
+  - stage: Deploy
+    jobs:
+      - job: Deploy
+        steps:
+          - template: /.azure_pipelines/deploy-template-eks.yml
+            parameters:
+              moduleVersion: ${{ parameters.moduleVersion }}
+              moduleName: ${{ parameters.moduleName }}
+              moduleEnvironment: ${{ parameters.moduleEnvironment }}
+              moduleTenant: ${{ parameters.moduleTenant }}
+              overrideValues: ${{ parameters.moduleOverrides }}
